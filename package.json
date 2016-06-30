@@ -1,0 +1,25 @@
+{
+  "name": "rzr-example",
+  "version": "0.0.1",
+  "description": "",
+  "main": "watch.js",
+  "dependencies": {
+    "rollup-plugin-buble": "~0.12.1",
+    "rollup": "~0.33.0"
+  },
+  "devDependencies": {
+    "@pakastin/watch": "0.0.1",
+    "nib": "~1.1.0",
+    "rollup": "~0.33.0",
+    "rollup-plugin-buble": "~0.12.1",
+    "stylus": "~0.54.5",
+    "uglifyjs": "~2.4.10"
+  },
+  "scripts": {
+    "dev": "node watch",
+    "build-js": "rollup -c -f iife js/index.js -o public/main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
