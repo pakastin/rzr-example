@@ -1,5 +1,5 @@
 
-import { el, render } from '../../rzr/src/index';
+import { el, render } from 'rzr';
 
 class Li {
   render(data, ...children) {
