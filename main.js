@@ -352,18 +352,21 @@
       var items = ref.items;
 
     return el( 'div', { class: "app" },
+      el( 'p', null,
+        el( 'a', { href: "http://github.com/pakastin/rzr" }, "Source")
+      ),
       el( 'div', { class: "speed" },
         el( 'button', { onclick: this.minRate.bind(this) }, "Min"),
         el( 'input', { oninput: this.onRefreshRate, type: "range", min: "0", max: "100", value: "0" }),
         el( 'button', { onclick: this.maxRate.bind(this) }, "Max")
-      ),
+        ),
       list(Item, items)
     )
-  };
-    Main.prototype.init = function init () {
-    this.range = this.dom.querySelector('input[type="range"]');
     };
-    Main.prototype.minRate = function minRate () {
+    Main.prototype.init = function init () {
+      this.range = this.dom.querySelector('input[type="range"]');
+  };
+  Main.prototype.minRate = function minRate () {
       this.range.value = REFRESH_RATE = 0;
   };
 
