@@ -18,6 +18,7 @@
   },
   "scripts": {
     "dev": "node watch",
+    "dist": "gh-pages -d public",
     "build-js": "rollup -c -f iife js/index.js -o public/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

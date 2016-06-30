@@ -25,6 +25,9 @@ class Item {
 class Main {
   render({ items }) {
     return <div class="app">
+      <p>
+        <a href="http://github.com/pakastin/rzr">Source</a>
+      </p>
       <div class="speed">
         <button onclick={ this.minRate.bind(this) }>Min</button>
         <input oninput={ this.onRefreshRate } type="range" min="0" max="100" value="0" />
