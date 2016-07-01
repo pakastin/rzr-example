@@ -3,8 +3,6 @@ import { el, list, render } from 'rzr';
 
 var REFRESH_RATE = 0;
 
-var total = 0;
-
 class Item {
   render({ width, height, i }) {
     return <div class="card">
