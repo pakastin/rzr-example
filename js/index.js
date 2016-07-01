@@ -6,7 +6,7 @@ var REFRESH_RATE = 0;
 class Item {
   render({ width, height, i }) {
     return <div class="card">
-      <div style={ `width: ${width}px; height: ${height}px; background-image: url(http://unsplash.it/${width}/${height})` } />
+      <div style={ `width: ${width}px; height: ${height}px; background-image: url(https://unsplash.it/${width}/${height})` } />
       <p>
         Image { i }
       </p>
@@ -18,7 +18,7 @@ class Main {
   render({ items }) {
     return <div class="app">
       <p>
-        <a href="http://github.com/pakastin/rzr-example">Source</a>
+        <a href="https://github.com/pakastin/rzr-example">Source</a>
       </p>
       <div class="speed">
         <button onclick={ this.minRate.bind(this) }>Min</button>
