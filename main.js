@@ -244,7 +244,7 @@
       }
     } else if (el instanceof Array) {
       for (var i = 0; i < el.length; i++) {
-        pos = render(parent, el[i], pos);
+        if (el[i] != null) pos = render(parent, el[i], pos);
       }
     } else if (el instanceof Node) {
       if (oldNode) {
@@ -322,83 +322,55 @@
     }
   }
 
-  var REFRESH_RATE = 0;
+  var Li = function Li () {};
 
-  var total = 0;
+  Li.prototype.render = function render$1 (ref) {
+      var children = [], len = arguments.length - 1;
+      while ( len-- > 0 ) children[ len ] = arguments[ len + 1 ];
 
-  var Item = function Item () {};
-
-  Item.prototype.render = function render$1 (ref) {
-      var width = ref.width;
-      var height = ref.height;
       var i = ref.i;
-
-    return el( 'div', { class: "card" },
-      el( 'div', { style: ("width: " + width + "px; height: " + height + "px; background-image: url(http://unsplash.it/" + width + "/" + height + ")") }),
-      el( 'p', null, "Image ", i
-      )
-    )
+    return el( 'li', { class: "item", onclick: this.onClick.bind(this) }, i)
   };
-  Item.prototype.mount = function mount () {
-    total++;
-  };
-  Item.prototype.unmount = function unmount () {
-    total--;
-  };
+  Li.prototype.init = function init (data) {
+      var children = [], len = arguments.length - 1;
+      while ( len-- > 0 ) children[ len ] = arguments[ len + 1 ];
 
-  var Main = function Main () {};
-
-  Main.prototype.render = function render$2 (ref) {
-      var items = ref.items;
-
-    return el( 'div', { class: "app" },
-      el( 'p', null,
-        el( 'a', { href: "http://github.com/pakastin/rzr-example" }, "Source")
-      ),
-      el( 'div', { class: "speed" },
-        el( 'button', { onclick: this.minRate.bind(this) }, "Min"),
-        el( 'input', { oninput: this.onRefreshRate, type: "range", min: "0", max: "100", value: "0" }),
-        el( 'button', { onclick: this.maxRate.bind(this) }, "Max")
-        ),
-      list(Item, items)
-      )
-    };
-    Main.prototype.init = function init () {
-      this.range = this.dom.querySelector('input[type="range"]');
+    console.log('created', this.dom);
   };
-  Main.prototype.minRate = function minRate () {
-    this.range.value = REFRESH_RATE = 0;
-  };
+  Li.prototype.update = function update$1 (data) {
+      var children = [], len = arguments.length - 1;
+      while ( len-- > 0 ) children[ len ] = arguments[ len + 1 ];
 
-  Main.prototype.onRefreshRate = function onRefreshRate () {
-    REFRESH_RATE = this.value;
+    console.log('updated', this.dom);
   };
-
-  Main.prototype.maxRate = function maxRate () {
-    this.range.value = REFRESH_RATE = 100;
+  Li.prototype.mount = function mount () {
+    console.log('mounted', this.dom);
+  };
+  Li.prototype.unmount = function unmount () {
+    console.log('unmounted', this.dom);
+  };
+  Li.prototype.onClick = function onClick () {
+    console.log(this);
   };
 
   var data = new Array(50);
 
   for (var i = 0; i < data.length; i++) {
-    data[i] = {
-      i: i,
-      width: Math.random() * 75 + 75 | 0,
-      height: Math.random() * 75 + 75 | 0
-    };
+    data[i] = { i: i };
   }
 
-  (function update () {
+  update();
+
+  function update () {
     var LEN = Math.random() * 25 + 25 | 0;
 
-    render(document.body, el( Main, { items: data.slice(0, LEN) }));
+    render(document.body, el( 'ul', null,
+      list(Li, data.slice(0, LEN))
+    ));
+
     data.sort(function () { return Math.random() - 0.5; });
 
-    if (REFRESH_RATE < 100) {
-      setTimeout(update, 1000 - REFRESH_RATE * 10);
-    } else {
-      requestAnimationFrame(update);
-    }
-  })();
+    setTimeout(update, 1000);
+  }
 
 }());
