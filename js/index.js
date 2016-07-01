@@ -14,12 +14,6 @@ class Item {
       </p>
     </div>
   }
-  mount () {
-    total++;
-  }
-  unmount () {
-    total--;
-  }
 }
 
 class Main {
