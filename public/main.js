@@ -352,19 +352,22 @@
       var items = ref.items;
 
     return el( 'div', { class: "app" },
+      el( 'p', null,
+        el( 'a', { href: "http://github.com/pakastin/rzr-example" }, "Source")
+      ),
       el( 'div', { class: "speed" },
         el( 'button', { onclick: this.minRate.bind(this) }, "Min"),
         el( 'input', { oninput: this.onRefreshRate, type: "range", min: "0", max: "100", value: "0" }),
         el( 'button', { onclick: this.maxRate.bind(this) }, "Max")
-      ),
+        ),
       list(Item, items)
-    )
-  };
-    Main.prototype.init = function init () {
-    this.range = this.dom.querySelector('input[type="range"]');
+      )
     };
-    Main.prototype.minRate = function minRate () {
-      this.range.value = REFRESH_RATE = 0;
+    Main.prototype.init = function init () {
+      this.range = this.dom.querySelector('input[type="range"]');
+  };
+  Main.prototype.minRate = function minRate () {
+    this.range.value = REFRESH_RATE = 0;
   };
 
   Main.prototype.onRefreshRate = function onRefreshRate () {
@@ -375,7 +378,7 @@
     this.range.value = REFRESH_RATE = 100;
   };
 
-  var data = new Array(150);
+  var data = new Array(50);
 
   for (var i = 0; i < data.length; i++) {
     data[i] = {
@@ -386,7 +389,7 @@
   }
 
   (function update () {
-    var LEN = Math.random() * 75 + 75 | 0;
+    var LEN = Math.random() * 25 + 25 | 0;
 
     render(document.body, el( Main, { items: data.slice(0, LEN) }));
     data.sort(function () { return Math.random() - 0.5; });

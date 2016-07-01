@@ -18,7 +18,7 @@ class Main {
   render({ items }) {
     return <div class="app">
       <p>
-        <a href="http://github.com/pakastin/rzr">Source</a>
+        <a href="http://github.com/pakastin/rzr-example">Source</a>
       </p>
       <div class="speed">
         <button onclick={ this.minRate.bind(this) }>Min</button>
@@ -44,7 +44,7 @@ class Main {
   }
 }
 
-var data = new Array(150);
+var data = new Array(50);
 
 for (var i = 0; i < data.length; i++) {
   data[i] = {
@@ -55,7 +55,7 @@ for (var i = 0; i < data.length; i++) {
 }
 
 (function update () {
-  var LEN = Math.random() * 75 + 75 | 0;
+  var LEN = Math.random() * 25 + 25 | 0;
 
   render(document.body, <Main items={ data.slice(0, LEN) }></Main>);
   data.sort(() => Math.random() - 0.5);
