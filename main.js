@@ -378,7 +378,7 @@
     this.range.value = REFRESH_RATE = 100;
   };
 
-  var data = new Array(150);
+  var data = new Array(50);
 
   for (var i = 0; i < data.length; i++) {
     data[i] = {
@@ -389,7 +389,7 @@
   }
 
   (function update () {
-    var LEN = Math.random() * 75 + 75 | 0;
+    var LEN = Math.random() * 25 + 25 | 0;
 
     render(document.body, el( Main, { items: data.slice(0, LEN) }));
     data.sort(function () { return Math.random() - 0.5; });
