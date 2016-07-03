@@ -2,10 +2,74 @@
   'use strict';
 
   function diff (parent, node, el) {
-    var oldEl = node && node.el;
+    var oldEl = (node && node.el) || {};
 
     var attrs = el.attrs;
-    var oldAttrs = oldEl.attrs;
+    var oldAttrs = oldEl.attrs || {};
+
+    var children = el.children;
+
+    for (var attr in attrs) {
+      var value = attrs[attr];
+      var oldValue = oldAttrs[attr];
+
+      if (value !== oldValue) {
+        if (typeof value === 'object') {
+          if (attr === 'style') {
+            for (var key in value) {
+              if (value[key] !== (oldValue && oldValue[key])) {
+                node.style[key] = value[key];
+              }
+            }
+            for (var key in oldValue) {
+              if (value[key] == null) {
+                node.style[key] = '';
+              }
+            }
+          } else if (attr === 'class') {
+            for (var key in value) {
+              if (key) {
+                if (value[key] !== (oldValue && oldValue[key])) {
+                  if (value[key]) {
+                    node.classList.add(key);
+                  } else {
+                    node.classList.remove(key);
+                  }
+                }
+              }
+            }
+            for (var key in oldValue) {
+              if (key) {
+                if (value[key] == null) {
+                  node.classList.remove(key);
+                }
+              }
+            }
+          } else {
+            node[attr] = value;
+          }
+        } else if (attr === 'style' || (node[attr] == null && typeof value != 'function')) {
+          node.setAttribute(attr, value);
+        } else {
+          node[attr] = value;
+        }
+      }
+    }
+
+    if (typeof children === 'string' || typeof children === 'number') {
+      node.textContent = children;
+    } else if (children) {
+      render(node, children);
+    } else {
+      render(node, []);
+    }
+  }
+
+  function diffSVG (parent, node, el) {
+    var oldEl = (node && node.el) || {};
+
+    var attrs = el.attrs;
+    var oldAttrs = oldEl.attrs || {};
 
     var children = el.children;
 
@@ -38,10 +102,10 @@
           } else {
             node[attr] = value;
           }
-        } else if (attr === 'style' || (node[attr] == null && typeof value != 'function')) {
-          node.setAttribute(attr, value);
-        } else {
+        } else if (typeof value == 'function') {
           node[attr] = value;
+        } else {
+          node.setAttribute(attr, value);
         }
       }
     }
@@ -124,99 +188,32 @@
     return result.join('');
   }
 
-  function list (Component, data) {
+  function list (Component, data, key) {
     var results = new Array(data.length);
 
     for (var i = 0; i < results.length; i++) {
-      results[i] = el(Component, data[i]);
+      var item = data[i];
+
+      if (key) {
+        results[i] = el(Component, Object.assign({}, item, {key: item[key]}));
+      } else {
+        results[i] = el(Component, item);
+      }
     }
 
     return results;
   }
 
-  function parse (el) {
-    var node = document.createElement(el.tagName);
-    var attrs = el.attrs;
-
-    node.el = el;
-    el.dom = node;
-
-    for (var key in attrs) {
-      var value = attrs[key];
-
-      if (typeof value === 'object') {
-        if (key === 'style') {
-          for (var key in value) {
-            node.style[key] = value[key];
-          }
-        } else if (key === 'class') {
-          for (var key in value) {
-            node.classList.add(key);
-          }
-        } else {
-          node[key] = value;
-        }
-      } else if (key === 'style' || (value == null && typeof value != 'function')) {
-        node.setAttribute(key, value);
-      } else {
-        node[key] = value;
-      }
-    }
-
-    var children = el.children;
-
-    if (typeof children === 'string' || typeof children === 'number') {
-      node.textContent = children;
-    } else if (children) {
-      render(node, children);
-    }
-
-    return node;
-  }
-
-  function parseSVG (el) {
-    var node = document.createElementNS('http://www.w3.org/2000/svg', el.tagName);
-
-    node.el = el;
-    el.dom = node;
-
-    var attrs = el.attrs;
-
-    for (var key in attrs) {
-      var value = attrs[key];
-
-      if (typeof value === 'object') {
-        if (key === 'style') {
-          for (var key in value) {
-            node.style[key] = value[key];
-          }
-        } else if (key === 'class') {
-          for (var key in value) {
-            node.classList.add(key);
-          }
-        } else {
-          node[key] = value;
-        }
-      } else if (typeof value === 'function') {
-        node[key] = value;
-      } else {
-        node.setAttribute(key, value);
-      }
-    }
-
-    var children = el.children;
-
-    render(node, children);
-
-    return node;
-  }
-
   function render (parent, el, originalPos) {
-    var pos = originalPos | pos;
+    var pos = originalPos || 0;
     var oldNode = parent.childNodes[pos];
     var oldEl = oldNode && oldNode.el;
 
     if (typeof el.tagName === 'function') {
+      var key = el.attrs.key;
+      if (key != null) {
+        oldEl = parent.childLookup && parent.childLookup[key];
+      }
       if (oldEl && oldEl.componentClass && el.tagName === oldEl.componentClass) {
         var attrs = el.attrs;
         var children = el.children;
@@ -229,6 +226,19 @@
         el.component = oldComponent;
         el.componentClass = oldComponentClass;
 
+        if (key != null) {
+          parent.childLookup || (parent.childLookup = {});
+          parent.childLookup[key] = el;
+
+          if (oldEl && oldEl.dom) {
+            if (oldNode) {
+              parent.insertBefore(oldEl.dom, oldNode);
+            } else {
+              parent.appendChild(oldEl.dom);
+            }
+          }
+        }
+
         pos = render(parent, el, pos);
       } else {
         var componentClass = el.tagName;
@@ -240,6 +250,12 @@
         el.component = component;
         el.componentClass = componentClass;
 
+        if (key != null) {
+          parent.childLookup || (parent.childLookup = {});
+          parent.childLookup[key] = el;
+          el.key = key;
+        }
+
         pos = render(parent, el, pos);
       }
     } else if (el instanceof Array) {
@@ -247,17 +263,27 @@
         if (el[i] != null) pos = render(parent, el[i], pos);
       }
     } else if (el instanceof Node) {
-      if (oldNode) {
-        parent.insertBefore(newNode, oldNode);
-      } else {
-        parent.appendChild(newNode);
+      if (el !== oldNode) {
+        if (oldNode) {
+          parent.insertBefore(el, oldNode);
+        } else {
+          parent.appendChild(el);
+        }
       }
       pos++;
-    } else if (typeof el === 'string' || typeof el === 'number') {
-      parent.textContent = el;
-      pos++;
+    } else if (typeof el === 'string' || typeof el === 'number' || el instanceof Date) {
+      var str = String(el);
+      if (!oldNode || oldNode.textContent !== str) {
+        pos = render(parent, document.createTextNode(str), pos);
+      } else {
+        pos++;
+      }
     } else {
       var isSVG = (el.tagName === 'svg' || parent instanceof SVGElement);
+
+      if (el.key != null) {
+        oldEl = parent.childLookup && parent.childLookup[oldEl];
+      }
 
       if (oldEl && el.tagName === oldEl.tagName && el.componentClass === oldEl.componentClass) {
         if (isSVG) {
@@ -265,9 +291,13 @@
         } else {
           diff(parent, oldNode, el);
         }
+        oldNode.el = el;
+        el.dom = oldNode;
       } else {
-        var newNode = isSVG ? parseSVG(el) : parse(el);
-        var el = newNode.el;
+        var newNode = isSVG ? document.createElementNS('http://www.w3.org/2000/svg', el.tagName) : document.createElement(el.tagName);
+        isSVG ? diffSVG(parent, newNode, el) : diff(parent, newNode, el);
+        newNode.el = el;
+        el.dom = newNode;
         var component = el && el.component;
 
         if (oldNode) {
@@ -322,55 +352,75 @@
     }
   }
 
-  var Li = function Li () {};
+  var REFRESH_RATE = 0;
 
-  Li.prototype.render = function render$1 (ref) {
-      var children = [], len = arguments.length - 1;
-      while ( len-- > 0 ) children[ len ] = arguments[ len + 1 ];
+  var Item = function Item () {};
 
+  Item.prototype.render = function render$1 (ref) {
+      var width = ref.width;
+      var height = ref.height;
       var i = ref.i;
-    return el( 'li', { class: "item", onclick: this.onClick.bind(this) }, i)
-  };
-  Li.prototype.init = function init (data) {
-      var children = [], len = arguments.length - 1;
-      while ( len-- > 0 ) children[ len ] = arguments[ len + 1 ];
 
-    console.log('created', this.dom);
+    return el( 'div', { class: "card" },
+      el( 'div', { style: ("width: " + width + "px; height: " + height + "px; background-image: url(https://unsplash.it/" + width + "/" + height + ")") }),
+      el( 'p', null, "Image ", i
+      )
+    )
   };
-  Li.prototype.update = function update$1 (data) {
-      var children = [], len = arguments.length - 1;
-      while ( len-- > 0 ) children[ len ] = arguments[ len + 1 ];
 
-    console.log('updated', this.dom);
+  var Main = function Main () {};
+
+  Main.prototype.render = function render$2 (ref) {
+      var items = ref.items;
+
+    return el( 'div', { class: "app" },
+      el( 'p', null,
+        el( 'a', { href: "https://github.com/pakastin/rzr-example" }, "Source")
+      ),
+      el( 'div', { class: "speed" },
+        el( 'button', { onclick: this.minRate.bind(this) }, "Min"),
+        el( 'input', { oninput: this.onRefreshRate, type: "range", min: "0", max: "100", value: "0" }),
+        el( 'button', { onclick: this.maxRate.bind(this) }, "Max")
+      ),
+        list(Item, items, 'i')
+      )
   };
-  Li.prototype.mount = function mount () {
-    console.log('mounted', this.dom);
+  Main.prototype.init = function init () {
+    this.range = this.dom.querySelector('input[type="range"]');
   };
-  Li.prototype.unmount = function unmount () {
-    console.log('unmounted', this.dom);
+  Main.prototype.minRate = function minRate () {
+    this.range.value = REFRESH_RATE = 0;
   };
-  Li.prototype.onClick = function onClick () {
-    console.log(this);
+
+  Main.prototype.onRefreshRate = function onRefreshRate () {
+    REFRESH_RATE = this.value;
+  };
+
+  Main.prototype.maxRate = function maxRate () {
+    this.range.value = REFRESH_RATE = 100;
   };
 
   var data = new Array(50);
 
   for (var i = 0; i < data.length; i++) {
-    data[i] = { i: i };
+    data[i] = {
+      i: i,
+      width: Math.random() * 75 + 75 | 0,
+      height: Math.random() * 75 + 75 | 0
+    };
   }
 
-  update();
-
-  function update () {
+  (function update () {
     var LEN = Math.random() * 25 + 25 | 0;
 
-    render(document.body, el( 'ul', null,
-      list(Li, data.slice(0, LEN))
-    ));
-
+    render(document.body, el( Main, { items: data.slice(0, LEN) }));
     data.sort(function () { return Math.random() - 0.5; });
 
-    setTimeout(update, 1000);
-  }
+    if (REFRESH_RATE < 100) {
+      setTimeout(update, 1000 - REFRESH_RATE * 10);
+    } else {
+      requestAnimationFrame(update);
+    }
+  })();
 
 }());
