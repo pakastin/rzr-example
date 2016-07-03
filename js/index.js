@@ -25,7 +25,7 @@ class Main {
         <input oninput={ this.onRefreshRate } type="range" min="0" max="100" value="0" />
         <button onclick={ this.maxRate.bind(this) }>Max</button>
       </div>
-      { list(Item, items) }
+      { list(Item, items, 'i') }
     </div>
   }
   init () {
