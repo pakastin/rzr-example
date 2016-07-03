@@ -2,10 +2,74 @@
   'use strict';
 
   function diff (parent, node, el) {
-    var oldEl = node && node.el;
+    var oldEl = (node && node.el) || {};
 
     var attrs = el.attrs;
-    var oldAttrs = oldEl.attrs;
+    var oldAttrs = oldEl.attrs || {};
+
+    var children = el.children;
+
+    for (var attr in attrs) {
+      var value = attrs[attr];
+      var oldValue = oldAttrs[attr];
+
+      if (value !== oldValue) {
+        if (typeof value === 'object') {
+          if (attr === 'style') {
+            for (var key in value) {
+              if (value[key] !== (oldValue && oldValue[key])) {
+                node.style[key] = value[key];
+              }
+            }
+            for (var key in oldValue) {
+              if (value[key] == null) {
+                node.style[key] = '';
+              }
+            }
+          } else if (attr === 'class') {
+            for (var key in value) {
+              if (key) {
+                if (value[key] !== (oldValue && oldValue[key])) {
+                  if (value[key]) {
+                    node.classList.add(key);
+                  } else {
+                    node.classList.remove(key);
+                  }
+                }
+              }
+            }
+            for (var key in oldValue) {
+              if (key) {
+                if (value[key] == null) {
+                  node.classList.remove(key);
+                }
+              }
+            }
+          } else {
+            node[attr] = value;
+          }
+        } else if (attr === 'style' || (node[attr] == null && typeof value != 'function')) {
+          node.setAttribute(attr, value);
+        } else {
+          node[attr] = value;
+        }
+      }
+    }
+
+    if (typeof children === 'string' || typeof children === 'number') {
+      node.textContent = children;
+    } else if (children) {
+      render(node, children);
+    } else {
+      render(node, []);
+    }
+  }
+
+  function diffSVG (parent, node, el) {
+    var oldEl = (node && node.el) || {};
+
+    var attrs = el.attrs;
+    var oldAttrs = oldEl.attrs || {};
 
     var children = el.children;
 
@@ -38,10 +102,10 @@
           } else {
             node[attr] = value;
           }
-        } else if (attr === 'style' || (node[attr] == null && typeof value != 'function')) {
-          node.setAttribute(attr, value);
-        } else {
+        } else if (typeof value == 'function') {
           node[attr] = value;
+        } else {
+          node.setAttribute(attr, value);
         }
       }
     }
@@ -134,85 +198,8 @@
     return results;
   }
 
-  function parse (el) {
-    var node = document.createElement(el.tagName);
-    var attrs = el.attrs;
-
-    node.el = el;
-    el.dom = node;
-
-    for (var key in attrs) {
-      var value = attrs[key];
-
-      if (typeof value === 'object') {
-        if (key === 'style') {
-          for (var key in value) {
-            node.style[key] = value[key];
-          }
-        } else if (key === 'class') {
-          for (var key in value) {
-            node.classList.add(key);
-          }
-        } else {
-          node[key] = value;
-        }
-      } else if (key === 'style' || (value == null && typeof value != 'function')) {
-        node.setAttribute(key, value);
-      } else {
-        node[key] = value;
-      }
-    }
-
-    var children = el.children;
-
-    if (typeof children === 'string' || typeof children === 'number') {
-      node.textContent = children;
-    } else if (children) {
-      render(node, children);
-    }
-
-    return node;
-  }
-
-  function parseSVG (el) {
-    var node = document.createElementNS('http://www.w3.org/2000/svg', el.tagName);
-
-    node.el = el;
-    el.dom = node;
-
-    var attrs = el.attrs;
-
-    for (var key in attrs) {
-      var value = attrs[key];
-
-      if (typeof value === 'object') {
-        if (key === 'style') {
-          for (var key in value) {
-            node.style[key] = value[key];
-          }
-        } else if (key === 'class') {
-          for (var key in value) {
-            node.classList.add(key);
-          }
-        } else {
-          node[key] = value;
-        }
-      } else if (typeof value === 'function') {
-        node[key] = value;
-      } else {
-        node.setAttribute(key, value);
-      }
-    }
-
-    var children = el.children;
-
-    render(node, children);
-
-    return node;
-  }
-
   function render (parent, el, originalPos) {
-    var pos = originalPos | pos;
+    var pos = originalPos || 0;
     var oldNode = parent.childNodes[pos];
     var oldEl = oldNode && oldNode.el;
 
@@ -244,18 +231,19 @@
       }
     } else if (el instanceof Array) {
       for (var i = 0; i < el.length; i++) {
-        pos = render(parent, el[i], pos);
+        if (el[i] != null) pos = render(parent, el[i], pos);
       }
     } else if (el instanceof Node) {
-      if (oldNode) {
-        parent.insertBefore(newNode, oldNode);
-      } else {
-        parent.appendChild(newNode);
+      if (el !== oldNode) {
+        if (oldNode) {
+          parent.insertBefore(el, oldNode);
+        } else {
+          parent.appendChild(el);
+        }
       }
       pos++;
-    } else if (typeof el === 'string' || typeof el === 'number') {
-      parent.textContent = el;
-      pos++;
+    } else if (typeof el === 'string' || typeof el === 'number' || el instanceof Date) {
+      pos = render(parent, document.createTextNode(el), pos);
     } else {
       var isSVG = (el.tagName === 'svg' || parent instanceof SVGElement);
 
@@ -265,9 +253,13 @@
         } else {
           diff(parent, oldNode, el);
         }
+        oldNode.el = el;
+        el.dom = oldNode;
       } else {
-        var newNode = isSVG ? parseSVG(el) : parse(el);
-        var el = newNode.el;
+        var newNode = isSVG ? document.createElementNS('http://www.w3.org/2000/svg', el.tagName) : document.createElement(el.tagName);
+        isSVG ? diffSVG(parent, newNode, el) : diff(parent, newNode, el);
+        newNode.el = el;
+        el.dom = newNode;
         var component = el && el.component;
 
         if (oldNode) {
@@ -324,8 +316,6 @@
 
   var REFRESH_RATE = 0;
 
-  var total = 0;
-
   var Item = function Item () {};
 
   Item.prototype.render = function render$1 (ref) {
@@ -334,16 +324,10 @@
       var i = ref.i;
 
     return el( 'div', { class: "card" },
-      el( 'div', { style: ("width: " + width + "px; height: " + height + "px; background-image: url(http://unsplash.it/" + width + "/" + height + ")") }),
+      el( 'div', { style: ("width: " + width + "px; height: " + height + "px; background-image: url(https://unsplash.it/" + width + "/" + height + ")") }),
       el( 'p', null, "Image ", i
       )
     )
-  };
-  Item.prototype.mount = function mount () {
-    total++;
-  };
-  Item.prototype.unmount = function unmount () {
-    total--;
   };
 
   var Main = function Main () {};
@@ -353,18 +337,18 @@
 
     return el( 'div', { class: "app" },
       el( 'p', null,
-        el( 'a', { href: "http://github.com/pakastin/rzr-example" }, "Source")
+        el( 'a', { href: "https://github.com/pakastin/rzr-example" }, "Source")
       ),
       el( 'div', { class: "speed" },
         el( 'button', { onclick: this.minRate.bind(this) }, "Min"),
         el( 'input', { oninput: this.onRefreshRate, type: "range", min: "0", max: "100", value: "0" }),
         el( 'button', { onclick: this.maxRate.bind(this) }, "Max")
-        ),
-      list(Item, items)
+      ),
+        list(Item, items)
       )
-    };
-    Main.prototype.init = function init () {
-      this.range = this.dom.querySelector('input[type="range"]');
+  };
+  Main.prototype.init = function init () {
+    this.range = this.dom.querySelector('input[type="range"]');
   };
   Main.prototype.minRate = function minRate () {
     this.range.value = REFRESH_RATE = 0;
